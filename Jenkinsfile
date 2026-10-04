@@ -72,53 +72,65 @@ pipeline {
         }
 
         stage('Update GitOps Repository') {
-            steps {
-
-                echo "Updating GitOps repository to image tag ${IMAGE_TAG}..."
-
-                dir('restaurant-k8s') {
-
-                    git(
-                        branch: 'main',
+        steps {
+    
+            echo "Updating GitOps repository to image tag ${IMAGE_TAG}..."
+    
+            dir('restaurant-k8s') {
+    
+                git(
+                    branch: 'main',
+                    credentialsId: "${GITOPS_CREDENTIALS}",
+                    url: "${GITOPS_REPO}"
+                )
+    
+                withCredentials([
+                    usernamePassword(
                         credentialsId: "${GITOPS_CREDENTIALS}",
-                        url: "${GITOPS_REPO}"
+                        usernameVariable: 'GIT_USERNAME',
+                        passwordVariable: 'GIT_PASSWORD'
                     )
-
+                ]) {
+    
                     sh '''
                         set -e
-
+    
                         echo "Updating backend image..."
                         sed -i "s|image: ${BACKEND_IMAGE}:.*|image: ${BACKEND_IMAGE}:${IMAGE_TAG}|" backend/deployment.yaml
-
+    
                         echo "Updating frontend image..."
                         sed -i "s|image: ${FRONTEND_IMAGE}:.*|image: ${FRONTEND_IMAGE}:${IMAGE_TAG}|" frontend/deployment.yaml
-
+    
                         echo "Updating MongoDB image..."
                         sed -i "s|image: ${MONGO_IMAGE}:.*|image: ${MONGO_IMAGE}:${IMAGE_TAG}|" mongodb/deployment.yaml
-
+    
                         echo "GitOps files after update:"
                         grep "image:" backend/deployment.yaml
                         grep "image:" frontend/deployment.yaml
                         grep "image:" mongodb/deployment.yaml
-
+    
                         git config user.name "Jenkins"
                         git config user.email "jenkins@localhost"
-
+    
                         git add \
                             backend/deployment.yaml \
                             frontend/deployment.yaml \
                             mongodb/deployment.yaml
-
+    
                         if git diff --cached --quiet; then
                             echo "No GitOps changes detected."
                         else
                             git commit -m "Update application images to build ${BUILD_NUMBER}"
+    
+                            git remote set-url origin "https://${GIT_USERNAME}:${GIT_PASSWORD}@github.com/bajpaishubhi9-web/restaurant-k8s.git"
+    
                             git push origin main
                         fi
                     '''
                 }
             }
         }
+    }
 
         stage('GitOps Deployment Triggered') {
             steps {
