@@ -34,6 +34,15 @@ db.restaurants.insertMany([
     }
   },
   {
+    "name": "Shubhi Bajpai Kachori",
+    "cuisine": "Bhartiya",
+    "address": {
+      "building": "Arya Apartment",
+      "street": "C Block, Chhattarpur", 
+      "zipcode": "101101"
+    }
+  },
+  {
     "name": "Dragon Palace",
     "cuisine": "Chinese",
     "address": {
